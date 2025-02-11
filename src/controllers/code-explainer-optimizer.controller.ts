@@ -1,4 +1,6 @@
 import {
+  BadGatewayException,
+  BadRequestException,
   Body,
   Controller,
   Injectable,
@@ -17,13 +19,19 @@ export class CodeOptimizerController {
   async optimizeCode(@Body() generateResponseDto: GenerateResponseDto) {
     try {
       const result = await this.codeOptimizerService.processUserMessage(
-        generateResponseDto.model,
+        /*  generateResponseDto.model,*/
         generateResponseDto.message,
       );
       return { success: true, data: result };
     } catch (err) {
       console.error('Error optimizing code:', err);
-      throw new InternalServerErrorException('failed to generate response');
+      if (err.message === 'Invalid input. Please provide valid code only.') {
+        throw new BadRequestException(
+          'Invalid input. Please provide valid code only.',
+        );
+      } else {
+        throw new InternalServerErrorException('failed to generate response');
+      }
     }
   }
 }

@@ -21,15 +21,17 @@ export class CodeOptimizerService {
     });
   }
 
-  async processUserMessage(model: LlmModel, message: string) {
-    if (model === LlmModel.ChatGPT) {
-      return await this.openAiService.getChatGptResponse(message);
-    } else if (model === LlmModel.Claude) {
-      return await this.claudeService.generateContent(message);
-    } else if (model === LlmModel.gemini) {
-      return await this.geminiService.generateContent(message);
-    } else if (model === LlmModel.DeepSeek) {
-      return await this.deepSeek.generateContent(message);
-    }
+  async processUserMessage(/*model: LlmModel,*/ message: string) {
+    // if (model === LlmModel.ChatGPT) {
+    //   return await this.openAiService.getChatGptResponse(message);
+    // } else if (model === LlmModel.Claude) {
+    //   return await this.claudeService.generateContent(message);
+    // } else if (model === LlmModel.gemini) {
+    //   return await this.geminiService.generateContent(message);
+    // } else if (model === LlmModel.DeepSeek) {
+    //   return await this.deepSeek.generateContent(message);
+    // }
+    const result = await this.openAiService.getChatGptResponse(message);
+    return result;
   }
 }
