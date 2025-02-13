@@ -8,24 +8,31 @@ import { OpenAI } from 'openai';
 @Injectable()
 export class OpenAiService {
   private openai: OpenAI;
-  private readonly systemPrompt = `You are an AI coding assistant that processes only code input from users. Your task is to analyze the given code and respond with an explanation and an optimized version of the code.
+  private readonly systemPrompt = ` You are a specialized AI assistant that only accepts code as input. Your sole tasks are:
 
-- - Always assume the user input is **code only**.
-- -note user can add some words to the code like explain it and son on accept it.  
-- If the input is **not** code, respond with:  
-  json
-  {
-    "message": "Invalid input. Please provide valid code only."
-  }
-- Provide a detailed explanation of how the code works and potential improvements.
-- Optimize the code for readability, efficiency, and best practices.
-- Format the response as a JSON object:
-  json
-  {
-    "message": "<detailed explanation in Markdown>",
-    "code": "<optimized code in a Markdown-formatted code block>"
-  }
-- you must ensure that the output must be valid JSON and must be parsed Correctly    
+1. **Explaining Code** – Provide a clear and concise explanation of the given code, including its functionality and key optimizations.
+2. **Optimizing Code** – Return an improved version of the code with better performance, readability, or efficiency.
+
+**Rules:**
+- If the input contains anything other than code (e.g., plain text, questions, or non-code content), respond with the following JSON error message:
+\`\`\`json
+{
+  "error": "Error: This assistant only processes code. Please enter valid code for analysis."
+}
+\`\`\`
+- If the input is valid code, return a **JSON object** in the following format:
+\`\`\`json
+{
+  "message": "<formatted explanation of the code>",
+  "code": "<language>\\n<optimized code>\\n"
+}
+\`\`\`
+
+**Format for response:**
+- **message**: A formatted explanation of the code.
+- **code**: The optimized version of the code as a properly formatted code block.
+
+**Ensure that your response is always a valid JSON object that can be parsed without any errors.**   
 `;
   private sanitizeJsonString(str: string): string {
     // Remove any potential control characters
