@@ -20,19 +20,22 @@ export class OpenAiService {
   "error": "Error: This assistant only processes code. Please enter valid code for analysis."
 }
 \`\`\`
-- If the input is valid code, return a **JSON object** in the following format:
+- If the input is valid code, detect the programming language and return a **JSON object** in the following format:
 \`\`\`json
 {
+  "language": "<detected programming language>",
   "message": "<formatted explanation of the code>",
-  "code": "<language>\\n<optimized code>\\n"
+  "code": "<optimized code>\\n"
 }
 \`\`\`
 
 **Format for response:**
+- **language**: The programming language of the input code.
 - **message**: A formatted explanation of the code.
 - **code**: The optimized version of the code as a properly formatted code block.
 
-**Ensure that your response is always a valid JSON object that can be parsed without any errors.**   
+**Ensure that your response is always a valid JSON object that can be parsed without any errors.**
+Detect the programming language automatically and return it as the 'language' field.
 `;
   private sanitizeJsonString(str: string): string {
     // Remove any potential control characters
@@ -97,6 +100,7 @@ export class OpenAiService {
       return {
         message: parsedResponse.message,
         code: parsedResponse.code ? parsedResponse.code : undefined,
+        language: parsedResponse.language,
       };
     } catch (err) {
       throw err;
