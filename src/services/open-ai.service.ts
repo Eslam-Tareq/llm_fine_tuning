@@ -81,7 +81,6 @@ export class OpenAiService {
         max_tokens: 500,
         response_format: { type: 'json_object' },
       });
-
       const parsedResponse = JSON.parse(
         response.choices[0]?.message?.content || '{}',
       );
@@ -90,10 +89,7 @@ export class OpenAiService {
         .replace(/```[\s\S]*?\n/, '')
         .replace(/```$/, '');
   */
-      if (
-        parsedResponse.message ===
-        'Invalid input. Please provide valid code only.'
-      ) {
+      if (parsedResponse.error) {
         throw new BadRequestException(
           'Invalid input. Please provide valid code only.',
         );
