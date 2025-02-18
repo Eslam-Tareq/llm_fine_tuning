@@ -6,7 +6,9 @@ import {
   Injectable,
   InternalServerErrorException,
   Post,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { OpenAI } from 'openai';
 import { GenerateResponseDto } from 'src/dtos/code-explainer-optimizer.dto';
 import { LlmModel } from 'src/enums/llm';
@@ -16,11 +18,15 @@ import { CodeOptimizerService } from 'src/services/code-explainer-optimizer.serv
 export class CodeOptimizerController {
   constructor(private codeOptimizerService: CodeOptimizerService) {}
   @Post()
-  async optimizeCode(@Body() generateResponseDto: GenerateResponseDto) {
+  async optimizeCode(
+    @Body() generateResponseDto: GenerateResponseDto,
+    @Res() res: Response,
+  ) {
     try {
       const result = await this.codeOptimizerService.processUserMessage(
         /*  generateResponseDto.model,*/
         generateResponseDto.message,
+        res,
       );
       return { success: true, data: result };
     } catch (err) {

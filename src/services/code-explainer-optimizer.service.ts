@@ -5,7 +5,7 @@ import { OpenAiService } from './open-ai.service';
 import { ClaudeAiService } from './claude.service';
 import { GeminiAiService } from './gemini.service';
 import { DeepSeekAiService } from './deep-seek.service';
-
+import { Response } from 'express';
 @Injectable()
 export class CodeOptimizerService {
   private openai: OpenAI;
@@ -21,7 +21,10 @@ export class CodeOptimizerService {
     });
   }
 
-  async processUserMessage(/*model: LlmModel,*/ message: string) {
+  async processUserMessage(
+    /*model: LlmModel,*/ message: string,
+    res: Response,
+  ) {
     // if (model === LlmModel.ChatGPT) {
     //   return await this.openAiService.getChatGptResponse(message);
     // } else if (model === LlmModel.Claude) {
@@ -31,7 +34,7 @@ export class CodeOptimizerService {
     // } else if (model === LlmModel.DeepSeek) {
     //   return await this.deepSeek.generateContent(message);
     // }
-    const result = await this.openAiService.getChatGptResponse(message);
+    const result = await this.openAiService.getChatGptResponse(message, res);
     return result;
   }
 }

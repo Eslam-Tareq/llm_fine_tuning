@@ -3,8 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { model } from 'mongoose';
 import { OpenAI } from 'openai';
+import { Readable } from 'stream';
+
 @Injectable()
 export class OpenAiService {
   private openai: OpenAI;
@@ -66,9 +69,10 @@ Detect the programming language automatically and return it as the 'language' fi
     });
   }
 
-  async getChatGptResponse(message: string) {
+  async getChatGptResponse(message: string, res: Response) {
     try {
       const response = await this.openai.chat.completions.create({
+        stream: true,
         model: 'gpt-4o-mini',
         messages: [
           {
@@ -91,25 +95,38 @@ Detect the programming language automatically and return it as the 'language' fi
         max_tokens: 5000,
         response_format: { type: 'json_object' },
       });
-      console.log(response.choices[0]?.message?.content);
-      const parsedResponse = JSON.parse(
-        response.choices[0]?.message?.content || '{}',
-      );
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      for await (const chunk of response) {
+        const content = chunk.choices[0]?.delta?.content;
+        console.log(content);
+        if (content) {
+          res.write(content);
+        }
+      }
+      res.end();
+
+      // console.log(response.choices[0]?.message?.content);
+      // const parsedResponse = JSON.parse(
+      //   response.choices[0]?.message?.content || '{}',
+      // );
       /*
       const codeContent = parsedResponse.code
         .replace(/```[\s\S]*?\n/, '')
         .replace(/```$/, '');
   */
-      if (parsedResponse.error) {
-        throw new BadRequestException(
-          'Invalid input. Please provide valid code only.',
-        );
-      }
-      return {
-        message: parsedResponse.message,
-        code: parsedResponse.code ? parsedResponse.code : undefined,
-        language: parsedResponse.language,
-      };
+      // if (parsedResponse.error) {
+      //   throw new BadRequestException(
+      //     'Invalid input. Please provide valid code only.',
+      //   );
+      // }
+      // return {
+      //   message: parsedResponse.message,
+      //   code: parsedResponse.code ? parsedResponse.code : undefined,
+      //   language: parsedResponse.language,
+      // };
     } catch (err) {
       throw err;
     }
