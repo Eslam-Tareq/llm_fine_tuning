@@ -3,20 +3,30 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Streaming Response</title>
+    <title>AI Code Assistant</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container">
-      <h2>ChatGPT Streaming</h2>
-      <textarea
-        id="userInput"
-        placeholder="Enter your message here..."
-      ></textarea>
+      <h2>ChatGPT Code Assistant</h2>
+      <textarea id="userInput" placeholder="Enter your code here..."></textarea>
       <button onclick="startStreaming()">Send</button>
-      <div id="output"></div>
-    </div>
 
+      <div class="output-section">
+        <h3>Explanation</h3>
+        <div id="explanation" class="explanation"></div>
+      </div>
+
+      <div class="output-section">
+        <h3>Detected Language</h3>
+        <div id="language" class="language"></div>
+      </div>
+
+      <div class="output-section">
+        <h3>Optimized Code</h3>
+        <pre><code id="optimizedCode" class="optimizedCode"></code></pre>
+      </div>
+    </div>
     <script src="script.js"></script>
   </body>
 </html>

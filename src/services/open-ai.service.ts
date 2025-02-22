@@ -17,20 +17,20 @@ export class OpenAiService {
       2. **Optimizing Code** – Return an improved version of the code with better performance, readability, or efficiency.
 
       **Rules:**
+      - dont include language in the start of optimized code
       - it is important not to change the function of code provided
       - If the input is plain text without valid code, respond with:  
         Invalid input. Please provide valid code only.
       - If the input contains valid code, return output in the following format:
-        \`\`\`markdown
         ### Explanation:
         <detailed explanation here>
+        <key optimization made>
+        ### detect language
+        <detected_language>
 
         ### Optimized Code:
-        \`\`\`<detected_language>
         <optimized code>
-        \`\`\`
-        ### key optimization made
-        \`\`\`
+        
 
      
 `;
