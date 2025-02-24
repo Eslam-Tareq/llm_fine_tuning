@@ -35,7 +35,6 @@ export class OpenAiService {
 
         <DETECT_LANGUAGE_END>
 
-
         <optimized code>
 
       - you must send <EXPLANATION_START> and <EXPLANATION_END> each one in single chunk
@@ -96,6 +95,7 @@ export class OpenAiService {
       for await (const chunk of response) {
         const content = chunk.choices[0]?.delta?.content;
         if (content) {
+          console.log(content);
           res.write(content);
         }
       }
