@@ -17,20 +17,28 @@ export class OpenAiService {
       2. **Optimizing Code** – Return an improved version of the code with better performance, readability, or efficiency.
 
       **Rules:**
-      - dont include language in the start of optimized code
+      -don t include language in optimized code give it explicit in <detected_language>
+
       - it is important not to change the function of code provided
       - If the input is plain text without valid code, respond with:  
         Invalid input. Please provide valid code only.
       - If the input contains valid code, return output in the following format:
-        ### Explanation:
+        <EXPLANATION_START>
+
         <detailed explanation here>
-        <key optimization made>
-        ### detect language
+
+        <EXPLANATION_END>
+
+        <DETECT_LANGUAGE_START>
+
         <detected_language>
 
-        ### Optimized Code:
+        <DETECT_LANGUAGE_END>
+
+
         <optimized code>
-        
+
+      - you must send <EXPLANATION_START> and <EXPLANATION_END> each one in single chunk
 
      
 `;

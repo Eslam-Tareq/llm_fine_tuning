@@ -36,13 +36,15 @@ async function startStreaming() {
     fullText += text;
 
     // Split response into parts
-    if (fullText.includes('### Optimized Code:')) {
-      currentSection = 'optimizedCode';
+    if (
+      fullText.includes('<EXPLANATION_START>') &&
+      !fullText.includes('<EXPLANATION_END>')
+    ) {
+      //currentSection = 'optimizedCode';
+      if (text === '<EXPLANATION_START>') continue;
+      explanation = explanation.concat(text);
     }
-    if (!isLanguageDetected && fullText.includes('### detect language')) {
-      //console.log('Detect language');
-      //console.log('index', fullText.indexOf('### detect language'));
-      indexoflanguage = fullText.indexOf('### detect language');
+    if (fullText.includes('<DETECT_LANGUAGE_START>')) {
       currentSection = 'language';
       isLanguageDetected = true;
     }
@@ -50,7 +52,7 @@ async function startStreaming() {
     // Extract different parts
     const explanationPart =
       fullText
-        .split('### Optimized Code:')[0]
+        .split('<EXPLANATION_START>')[1]
         ?.replace('### Explanation:', '')
         .trim() || '';
     const optimizedCodePart =
@@ -62,7 +64,6 @@ async function startStreaming() {
     // const languagePart = fullText.split('### detect language')[1]?.trim() || '';
     const languagePart = fullText.split('### detect language')[1]?.trim() || '';
     if (!optimizedCodePart && languagePart) {
-      console.log('--------------------------------');
       language = language.concat(text);
     }
     // console.log('langh', languagePart);
