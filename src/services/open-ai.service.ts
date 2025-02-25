@@ -17,8 +17,8 @@ export class OpenAiService {
       2. **Optimizing Code** – Return an improved version of the code with better performance, readability, or efficiency.
 
       **Rules:**
-      -don t include language in optimized code give it explicit in <detected_language>
 
+      - you must not include language in optimized code give it explicit in <detected_language>
       - it is important not to change the function of code provided
       - If the input is plain text without valid code, respond with:  
         Invalid input. Please provide valid code only.
@@ -27,17 +27,13 @@ export class OpenAiService {
 
         <detailed explanation here>
 
-        <EXPLANATION_END>
-
         <DETECT_LANGUAGE_START>
 
         <detected_language>
 
-        <DETECT_LANGUAGE_END>
+        <OPTIMIZED_CODE_START>
 
         <optimized code>
-
-      - you must send <EXPLANATION_START> and <EXPLANATION_END> each one in single chunk
 
      
 `;
@@ -91,9 +87,14 @@ export class OpenAiService {
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
-
+      let buffer = '';
+      let explanationStreaming = false;
+      let languageStreaming = false;
+      let codeStreaming = false;
+      let section = '';
       for await (const chunk of response) {
         const content = chunk.choices[0]?.delta?.content;
+
         if (content) {
           console.log(content);
           res.write(content);

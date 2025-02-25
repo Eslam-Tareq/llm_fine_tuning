@@ -31,6 +31,10 @@
     <div id="code-section"></div>
 
     <script>
+      function isSubstring(word, reference) {
+        const regex = new RegExp(word); // Create a regex dynamically from the input word
+        return regex.test(reference);
+      }
       document
         .getElementById('codeForm')
         .addEventListener('submit', async function (event) {
@@ -47,62 +51,101 @@
           const reader = response.body.getReader();
           const decoder = new TextDecoder('utf-8');
           let done = false;
-          let content = '';
-
+          let buffer = '';
+          let explanation = '';
+          let language = '';
+          let code = '';
+          let explanationStreaming = false;
+          let languageStreaming = false;
+          let codeStreaming = false;
+          let section = '';
           while (!done) {
+            let detector = false;
             const { value, done: readerDone } = await reader.read();
             done = readerDone;
-            const chunk = decoder.decode(value, { stream: true });
-            content += chunk;
-
-            // Append streamed content to the respective divs
-            if (chunk.includes('<EXPLANATION_START>')) {
-              const explanationStartIndex = chunk.indexOf(
-                '<EXPLANATION_START>',
-              );
-              document.getElementById('explanation').innerText += chunk.slice(
-                explanationStartIndex + 19,
-              );
-            } else if (chunk.includes('<EXPLANATION_END>')) {
-              const explanationEndIndex = chunk.indexOf('<EXPLANATION_END>');
-              document.getElementById('explanation').innerText += chunk.slice(
-                0,
-                explanationEndIndex,
-              );
-            } else if (
-              content.includes('<EXPLANATION_START>') &&
-              !content.includes('<EXPLANATION_END>')
-            ) {
-              document.getElementById('explanation').innerText += chunk;
+            const chunk = decoder.decode(value);
+            const word = chunk;
+            buffer += word;
+            console.log(word);
+            if (buffer.includes('<EXPLANATION_START>')) {
+              detector = true;
+              explanationStreaming = true;
+              languageStreaming = false;
+              codeStreaming = false;
+              section = 'explanation';
+              buffer = buffer.replace('<EXPLANATION_START>', '');
+            } else if (buffer.includes('<DETECT_LANGUAGE_START>')) {
+              languageStreaming = true;
+              explanationStreaming = false;
+              codeStreaming = false;
+              section = 'language';
+              buffer = buffer.replace('<DETECT_LANGUAGE_START>', '');
+            } else if (buffer.includes('<OPTIMIZED_CODE_START>')) {
+              codeStreaming = true;
+              explanationStreaming = false;
+              languageStreaming = false;
+              section = 'code';
+              buffer = buffer.replace('<OPTIMIZED_CODE_START>', '');
             }
-
-            if (chunk.includes('<DETECT_LANGUAGE_START>')) {
-              const languageStartIndex = chunk.indexOf(
-                '<DETECT_LANGUAGE_START>',
-              );
-              document.getElementById('language').innerText += chunk.slice(
-                languageStartIndex + 21,
-              );
-            } else if (chunk.includes('<DETECT_LANGUAGE_END>')) {
-              const languageEndIndex = chunk.indexOf('<DETECT_LANGUAGE_END>');
-              document.getElementById('language').innerText += chunk.slice(
-                0,
-                languageEndIndex,
-              );
-            } else if (
-              content.includes('<DETECT_LANGUAGE_START>') &&
-              !content.includes('<DETECT_LANGUAGE_END>')
-            ) {
-              document.getElementById('language').innerText += chunk;
+            if (explanationStreaming && !detector) {
+              explanation += word;
+            } else if (languageStreaming) {
+              language += word;
+            } else if (codeStreaming) {
+              code += word;
             }
+            document.getElementById('explanation').innerText = explanation;
+            document.getElementById('language').innerText = language;
+            document.getElementById('code-section').innerText = code;
 
-            if (content.includes('<EXPLANATION_END>')) {
-              const codeSectionContent = content
-                .split('<EXPLANATION_END>')[1]
-                .trim();
-              document.getElementById('code-section').innerText +=
-                codeSectionContent;
-            }
+            // // Append streamed content to the respective divs
+            // if (chunk.includes('<EXPLANATION_START>')) {
+            //   const explanationStartIndex = chunk.indexOf(
+            //     '<EXPLANATION_START>',
+            //   );
+            //   document.getElementById('explanation').innerText += chunk.slice(
+            //     explanationStartIndex + 19,
+            //   );
+            // } else if (chunk.includes('<EXPLANATION_END>')) {
+            //   const explanationEndIndex = chunk.indexOf('<EXPLANATION_END>');
+            //   document.getElementById('explanation').innerText += chunk.slice(
+            //     0,
+            //     explanationEndIndex,
+            //   );
+            // } else if (
+            //   content.includes('<EXPLANATION_START>') &&
+            //   !content.includes('<EXPLANATION_END>')
+            // ) {
+            //   document.getElementById('explanation').innerText += chunk;
+            // }
+
+            // if (chunk.includes('<DETECT_LANGUAGE_START>')) {
+            //   const languageStartIndex = chunk.indexOf(
+            //     '<DETECT_LANGUAGE_START>',
+            //   );
+            //   document.getElementById('language').innerText += chunk.slice(
+            //     languageStartIndex + 21,
+            //   );
+            // } else if (chunk.includes('<DETECT_LANGUAGE_END>')) {
+            //   const languageEndIndex = chunk.indexOf('<DETECT_LANGUAGE_END>');
+            //   document.getElementById('language').innerText += chunk.slice(
+            //     0,
+            //     languageEndIndex,
+            //   );
+            // } else if (
+            //   content.includes('<DETECT_LANGUAGE_START>') &&
+            //   !content.includes('<DETECT_LANGUAGE_END>')
+            // ) {
+            //   document.getElementById('language').innerText += chunk;
+            // }
+
+            // if (content.includes('<EXPLANATION_END>')) {
+            //   const codeSectionContent = content
+            //     .split('<EXPLANATION_END>')[1]
+            //     .trim();
+            //   document.getElementById('code-section').innerText +=
+            //     codeSectionContent;
+            // }
           }
         });
     </script>
