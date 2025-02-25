@@ -31,6 +31,27 @@
     <div id="code-section"></div>
 
     <script>
+      function removeValidSubstring(target, text) {
+        for (let i = 0; i < target.length; i++) {
+          const substring = target.slice(i); // Get substring from index i to the end
+          if (text.includes(substring)) {
+            text = text.replace(substring, ''); // Replace the first occurrence
+          }
+        }
+
+        return text;
+      }
+      function keepValidSubstring(target, text) {
+        for (let i = 0; i < target.length; i++) {
+          const substring = target.slice(i); // Get substring from index i to the end
+          if (text.includes(substring)) {
+            return substring; // Return the first valid substring found
+          }
+        }
+
+        return ''; // If no valid substring is found, return an empty string
+      }
+
       function isSubstring(word, reference) {
         const regex = new RegExp(word); // Create a regex dynamically from the input word
         return regex.test(reference);
@@ -61,42 +82,92 @@
           let section = '';
           while (!done) {
             let detector = false;
+            let edStartDetector = false;
+            let edEndDetector = false;
+            let lStartDetector = false;
+            let lEndDetector = false;
+            let cStartDetector = false;
+            let cEndDetector = false;
+
             const { value, done: readerDone } = await reader.read();
             done = readerDone;
             const chunk = decoder.decode(value);
-            const word = chunk;
+            let word = chunk;
             buffer += word;
-            console.log(word);
+            //console.log(word);
             if (buffer.includes('<EXPLANATION_START>')) {
-              detector = true;
+              edStartDetector = true;
               explanationStreaming = true;
               languageStreaming = false;
               codeStreaming = false;
               section = 'explanation';
               buffer = buffer.replace('<EXPLANATION_START>', '');
             } else if (buffer.includes('<DETECT_LANGUAGE_START>')) {
+              edEndDetector = true;
+              lStartDetector = true;
               languageStreaming = true;
               explanationStreaming = false;
               codeStreaming = false;
               section = 'language';
               buffer = buffer.replace('<DETECT_LANGUAGE_START>', '');
             } else if (buffer.includes('<OPTIMIZED_CODE_START>')) {
+              lEndDetector = true;
+              cStartDetector = true;
               codeStreaming = true;
               explanationStreaming = false;
               languageStreaming = false;
               section = 'code';
               buffer = buffer.replace('<OPTIMIZED_CODE_START>', '');
             }
-            if (explanationStreaming && !detector) {
+            if (explanationStreaming) {
+              if (edStartDetector) {
+                word = removeValidSubstring('<EXPLANATION_START>', word);
+              }
+
               explanation += word;
             } else if (languageStreaming) {
-              language += word;
+              let passedWord = word;
+              if (lStartDetector) {
+                passedWord = removeValidSubstring(
+                  '<DETECT_LANGUAGE_START>',
+                  word,
+                );
+              }
+              if (edEndDetector) {
+                const removedWord = keepValidSubstring(
+                  '<DETECT_LANGUAGE_START>',
+                  word,
+                );
+                explanation += removedWord;
+                explanation = explanation.replace(
+                  '<DETECT_LANGUAGE_START>',
+                  '',
+                );
+              }
+              language += passedWord;
             } else if (codeStreaming) {
-              code += word;
+              let passedWord = word;
+              if (cStartDetector) {
+                passedWord = removeValidSubstring(
+                  '<OPTIMIZED_CODE_START>',
+                  word,
+                );
+              }
+              if (lEndDetector) {
+                const removedWord = keepValidSubstring(
+                  '<OPTIMIZED_CODE_START>',
+                  word,
+                );
+                language += removedWord;
+                language = language.replace('<OPTIMIZED_CODE_START>', '');
+              }
+              code += passedWord;
             }
-            document.getElementById('explanation').innerText = explanation;
-            document.getElementById('language').innerText = language;
-            document.getElementById('code-section').innerText = code;
+
+            document.getElementById('explanation').innerText =
+              explanation.trim();
+            document.getElementById('language').innerText = language.trim();
+            document.getElementById('code-section').innerText = code.trim();
 
             // // Append streamed content to the respective divs
             // if (chunk.includes('<EXPLANATION_START>')) {
