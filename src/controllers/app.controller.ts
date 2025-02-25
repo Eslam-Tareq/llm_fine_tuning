@@ -19,9 +19,9 @@ export class AppController {
   async chat(@Body() body: any, @Param('llm_type') llm_type: string) {
     switch (llm_type) {
       case 'open_ai':
-        return ResponseDto.ok(
-          await this.openAiService.getChatGptResponse(body.message),
-        );
+      // return ResponseDto.ok(
+      //   await this.openAiService.getChatGptResponse(body.message),
+      // );
       case 'gemini':
         return ResponseDto.ok(
           await this.geminiService.generateContent(body.message),

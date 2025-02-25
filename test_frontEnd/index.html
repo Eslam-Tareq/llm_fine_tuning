@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Code Explainer and Optimizer</title>
+    <style>
+      #explanation,
+      #language,
+      #code-section {
+        margin: 1em 0;
+        padding: 1em;
+        border: 1px solid #ccc;
+        white-space: pre-wrap; /* Ensure that whitespace and line breaks are preserved */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Code Explainer and Optimizer</h1>
+    <form id="codeForm">
+      <textarea
+        id="codeInput"
+        rows="10"
+        cols="50"
+        placeholder="Enter your code here"
+      ></textarea>
+      <button type="submit">Submit</button>
+    </form>
+    <div id="explanation"></div>
+    <div id="language"></div>
+    <div id="code-section"></div>
+
+    <script>
+      function removeValidSubstring(target, text) {
+        for (let i = 0; i < target.length; i++) {
+          const substring = target.slice(i); // Get substring from index i to the end
+          if (text.includes(substring)) {
+            text = text.replace(substring, ''); // Replace the first occurrence
+          }
+        }
+
+        return text;
+      }
+      function keepValidSubstring(target, text) {
+        for (let i = 0; i < target.length; i++) {
+          const substring = target.slice(i); // Get substring from index i to the end
+          if (text.includes(substring)) {
+            return substring; // Return the first valid substring found
+          }
+        }
+
+        return ''; // If no valid substring is found, return an empty string
+      }
+
+      function isSubstring(word, reference) {
+        const regex = new RegExp(word); // Create a regex dynamically from the input word
+        return regex.test(reference);
+      }
+      document
+        .getElementById('codeForm')
+        .addEventListener('submit', async function (event) {
+          event.preventDefault();
+          const codeInput = document.getElementById('codeInput').value;
+          const response = await fetch('http://127.0.0.1:8000/code-vision/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: codeInput }),
+          });
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder('utf-8');
+          let done = false;
+          let buffer = '';
+          let explanation = '';
+          let language = '';
+          let code = '';
+          let explanationStreaming = false;
+          let languageStreaming = false;
+          let codeStreaming = false;
+          let section = '';
+          while (!done) {
+            let detector = false;
+            let edStartDetector = false;
+            let edEndDetector = false;
+            let lStartDetector = false;
+            let lEndDetector = false;
+            let cStartDetector = false;
+            let cEndDetector = false;
+
+            const { value, done: readerDone } = await reader.read();
+            done = readerDone;
+            const chunk = decoder.decode(value);
+            let word = chunk;
+            buffer += word;
+            //console.log(word);
+            if (buffer.includes('<EXPLANATION_START>')) {
+              edStartDetector = true;
+              explanationStreaming = true;
+              languageStreaming = false;
+              codeStreaming = false;
+              section = 'explanation';
+              buffer = buffer.replace('<EXPLANATION_START>', '');
+            } else if (buffer.includes('<DETECT_LANGUAGE_START>')) {
+              edEndDetector = true;
+              lStartDetector = true;
+              languageStreaming = true;
+              explanationStreaming = false;
+              codeStreaming = false;
+              section = 'language';
+              buffer = buffer.replace('<DETECT_LANGUAGE_START>', '');
+            } else if (buffer.includes('<OPTIMIZED_CODE_START>')) {
+              lEndDetector = true;
+              cStartDetector = true;
+              codeStreaming = true;
+              explanationStreaming = false;
+              languageStreaming = false;
+              section = 'code';
+              buffer = buffer.replace('<OPTIMIZED_CODE_START>', '');
+            }
+            if (explanationStreaming) {
+              if (edStartDetector) {
+                word = removeValidSubstring('<EXPLANATION_START>', word);
+              }
+
+              explanation += word;
+            } else if (languageStreaming) {
+              let passedWord = word;
+              if (lStartDetector) {
+                passedWord = removeValidSubstring(
+                  '<DETECT_LANGUAGE_START>',
+                  word,
+                );
+              }
+              if (edEndDetector) {
+                const removedWord = keepValidSubstring(
+                  '<DETECT_LANGUAGE_START>',
+                  word,
+                );
+                explanation += removedWord;
+                explanation = explanation.replace(
+                  '<DETECT_LANGUAGE_START>',
+                  '',
+                );
+              }
+              language += passedWord;
+            } else if (codeStreaming) {
+              let passedWord = word;
+              if (cStartDetector) {
+                passedWord = removeValidSubstring(
+                  '<OPTIMIZED_CODE_START>',
+                  word,
+                );
+              }
+              if (lEndDetector) {
+                const removedWord = keepValidSubstring(
+                  '<OPTIMIZED_CODE_START>',
+                  word,
+                );
+                language += removedWord;
+                language = language.replace('<OPTIMIZED_CODE_START>', '');
+              }
+              code += passedWord;
+            }
+
+            document.getElementById('explanation').innerText =
+              explanation.trim();
+            document.getElementById('language').innerText = language.trim();
+            document.getElementById('code-section').innerText = code.trim();
+
+            // // Append streamed content to the respective divs
+            // if (chunk.includes('<EXPLANATION_START>')) {
+            //   const explanationStartIndex = chunk.indexOf(
+            //     '<EXPLANATION_START>',
+            //   );
+            //   document.getElementById('explanation').innerText += chunk.slice(
+            //     explanationStartIndex + 19,
+            //   );
+            // } else if (chunk.includes('<EXPLANATION_END>')) {
+            //   const explanationEndIndex = chunk.indexOf('<EXPLANATION_END>');
+            //   document.getElementById('explanation').innerText += chunk.slice(
+            //     0,
+            //     explanationEndIndex,
+            //   );
+            // } else if (
+            //   content.includes('<EXPLANATION_START>') &&
+            //   !content.includes('<EXPLANATION_END>')
+            // ) {
+            //   document.getElementById('explanation').innerText += chunk;
+            // }
+
+            // if (chunk.includes('<DETECT_LANGUAGE_START>')) {
+            //   const languageStartIndex = chunk.indexOf(
+            //     '<DETECT_LANGUAGE_START>',
+            //   );
+            //   document.getElementById('language').innerText += chunk.slice(
+            //     languageStartIndex + 21,
+            //   );
+            // } else if (chunk.includes('<DETECT_LANGUAGE_END>')) {
+            //   const languageEndIndex = chunk.indexOf('<DETECT_LANGUAGE_END>');
+            //   document.getElementById('language').innerText += chunk.slice(
+            //     0,
+            //     languageEndIndex,
+            //   );
+            // } else if (
+            //   content.includes('<DETECT_LANGUAGE_START>') &&
+            //   !content.includes('<DETECT_LANGUAGE_END>')
+            // ) {
+            //   document.getElementById('language').innerText += chunk;
+            // }
+
+            // if (content.includes('<EXPLANATION_END>')) {
+            //   const codeSectionContent = content
+            //     .split('<EXPLANATION_END>')[1]
+            //     .trim();
+            //   document.getElementById('code-section').innerText +=
+            //     codeSectionContent;
+            // }
+          }
+        });
+    </script>
+  </body>
+</html>

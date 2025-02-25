@@ -3,46 +3,39 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { model } from 'mongoose';
 import { OpenAI } from 'openai';
+import { Readable } from 'stream';
+
 @Injectable()
 export class OpenAiService {
   private openai: OpenAI;
-  private readonly systemPrompt = `You are a specialized AI assistant that only accepts valid code, including HTML and any code that contains comments or highlighted sections. Your tasks are:
+  private readonly systemPrompt = `  You are a specialized AI assistant that only accepts valid code, including HTML and any code that contains comments or highlighted sections. Your tasks are:
 
-1. **Explaining Code** – Provide a clear and concise explanation of the given code, including its functionality and key optimizations.
-2. **Optimizing Code** – Return an improved version of the code with better performance, readability, or efficiency.
+      1. **Explaining Code** – Provide a clear and concise explanation of the given code, including its functionality and key optimizations.
+      2. **Optimizing Code** – Return an improved version of the code with better performance, readability, or efficiency.
 
-**Rules:**
-- If the input contains only plain text (without any valid code structure) or is unrelated to coding, respond with the following JSON error message:
-  \`\`\`json
-  {
-    "error": "Error: This assistant only processes code. Please enter valid code for analysis."
-  }
-  \`\`\`
-- If the input contains valid code, including:
-  - **Programming code** (Python, JavaScript, TypeScript, C++, Java, etc.)
-  - **HTML, CSS, and XML**
-  - **Code with comments or highlights**
-  - **Markdown-formatted code blocks**
+      **Rules:**
 
-Then detect the programming language and return a **JSON object** in the following format:
+      - you must not include language in optimized code give it explicit in <detected_language>
+      - it is important not to change the function of code provided
+      - If the input is plain text without valid code, respond with:  
+        Invalid input. Please provide valid code only.
+      - If the input contains valid code, return output in the following format:
+        <EXPLANATION_START>
 
-  \`\`\`json
-  {
-    "language": "<detected programming language>",
-    "message": "<formatted explanation of the code>",
-    "code": "<optimized code>\\n"
-  }
-  \`\`\`
+        <detailed explanation here>
 
-**Format for response:**
-- **language**: The detected programming language.
-- **message**: A formatted explanation of the code.
-- **code**: The optimized version of the code, properly formatted.
+        <DETECT_LANGUAGE_START>
 
-**Ensure that your response is always a valid JSON object that can be parsed without errors.**
-Detect the programming language automatically and return it as the 'language' field.
+        <detected_language>
+
+        <OPTIMIZED_CODE_START>
+
+        <optimized code>
+
+     
 `;
   private sanitizeJsonString(str: string): string {
     // Remove any potential control characters
@@ -66,9 +59,10 @@ Detect the programming language automatically and return it as the 'language' fi
     });
   }
 
-  async getChatGptResponse(message: string) {
+  async getChatGptResponse(message: string, res: Response) {
     try {
       const response = await this.openai.chat.completions.create({
+        stream: true,
         model: 'gpt-4o-mini',
         messages: [
           {
@@ -89,27 +83,44 @@ Detect the programming language automatically and return it as the 'language' fi
           },
         ],
         max_tokens: 5000,
-        response_format: { type: 'json_object' },
       });
-      console.log(response.choices[0]?.message?.content);
-      const parsedResponse = JSON.parse(
-        response.choices[0]?.message?.content || '{}',
-      );
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      let buffer = '';
+      let explanationStreaming = false;
+      let languageStreaming = false;
+      let codeStreaming = false;
+      let section = '';
+      for await (const chunk of response) {
+        const content = chunk.choices[0]?.delta?.content;
+
+        if (content) {
+          console.log(content);
+          res.write(content);
+        }
+      }
+      res.end();
+
+      // console.log(response.choices[0]?.message?.content);
+      // const parsedResponse = JSON.parse(
+      //   response.choices[0]?.message?.content || '{}',
+      // );
       /*
       const codeContent = parsedResponse.code
         .replace(/```[\s\S]*?\n/, '')
         .replace(/```$/, '');
   */
-      if (parsedResponse.error) {
-        throw new BadRequestException(
-          'Invalid input. Please provide valid code only.',
-        );
-      }
-      return {
-        message: parsedResponse.message,
-        code: parsedResponse.code ? parsedResponse.code : undefined,
-        language: parsedResponse.language,
-      };
+      // if (parsedResponse.error) {
+      //   throw new BadRequestException(
+      //     'Invalid input. Please provide valid code only.',
+      //   );
+      // }
+      // return {
+      //   message: parsedResponse.message,
+      //   code: parsedResponse.code ? parsedResponse.code : undefined,
+      //   language: parsedResponse.language,
+      // };
     } catch (err) {
       throw err;
     }
